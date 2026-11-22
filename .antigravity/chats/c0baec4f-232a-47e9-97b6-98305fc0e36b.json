@@ -3,6 +3,19 @@
   "name": "Connect to this api endpoint\": \"/api/v3/system/nodes\",",
   "createdAt": "2026-11-06T21:54:20.619Z",
   "filename": "c0baec4f-232a-47e9-97b6-98305fc0e36b.json",
-  "geminiStarted": false,
-  "messages": []
+  "geminiStarted": true,
+  "messages": [
+    {
+      "id": "11421c71-bcb8-4896-8c49-88054ddf8680",
+      "role": "user",
+      "content": "Create a to-do app an ai agent bot works on binary trading with amount of 1000$ and time frame of 00h05min00sec on platfourm olymptrade on the demo account locked on live chart for a choosen stock migrate all the skills you find through internet ,GitHub,Reddit,Claude,grok,gpt related to financial related to this objective 90% win rate",
+      "status": "pending",
+      "model": "gemini-3.8-flash-high",
+      "client_type": "gemini-bridge",
+      "parent_message_id": null,
+      "created_at": "2026-11-22T09:56:36.081Z",
+      "sender": "ios",
+      "is_cancelled": false
+    }
+  ]
 }
