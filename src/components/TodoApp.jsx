@@ -58,11 +58,11 @@ export default function TodoApp({
           </div>
         </div>
 
-        {/* Tab Controls */}
-        <div className="flex items-center gap-1 bg-slate-950/80 p-1 rounded-xl border border-slate-800 text-xs">
+        {/* Tab Controls (Responsive scroll for iPhone) */}
+        <div className="flex items-center gap-1 bg-slate-950/80 p-1 rounded-xl border border-slate-800 text-xs w-full sm:w-auto overflow-x-auto pb-0.5 sm:pb-1">
           <button
             onClick={() => setActiveTab('checklist')}
-            className={`px-3 py-1.5 rounded-lg font-medium transition ${
+            className={`px-3 py-1.5 rounded-lg font-medium transition cursor-pointer shrink-0 ${
               activeTab === 'checklist'
                 ? 'bg-cyan-500/15 text-cyan-300 border border-cyan-500/30'
                 : 'text-slate-400 hover:text-slate-200'
@@ -72,7 +72,7 @@ export default function TodoApp({
           </button>
           <button
             onClick={() => setActiveTab('ai_logs')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition cursor-pointer shrink-0 ${
               activeTab === 'ai_logs'
                 ? 'bg-cyan-500/15 text-cyan-300 border border-cyan-500/30'
                 : 'text-slate-400 hover:text-slate-200'
@@ -83,7 +83,7 @@ export default function TodoApp({
           </button>
           <button
             onClick={() => setActiveTab('new_task')}
-            className={`flex items-center gap-1 px-3 py-1.5 rounded-lg font-medium transition ${
+            className={`flex items-center gap-1 px-3 py-1.5 rounded-lg font-medium transition cursor-pointer shrink-0 ${
               activeTab === 'new_task'
                 ? 'bg-cyan-500/15 text-cyan-300 border border-cyan-500/30'
                 : 'text-slate-400 hover:text-slate-200'
@@ -99,7 +99,7 @@ export default function TodoApp({
       {activeTab === 'checklist' && (
         <div>
           <div className="flex items-center justify-between text-xs text-slate-400 mb-1.5">
-            <span className="font-semibold">Pre-Flight Trading Discipline Progress</span>
+            <span className="font-semibold">Trading Discipline Progress</span>
             <span className="font-mono text-cyan-400 font-bold">{progressPct}% Complete</span>
           </div>
           <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
@@ -115,13 +115,13 @@ export default function TodoApp({
       {activeTab === 'checklist' && (
         <div className="space-y-3">
           {/* Category Filter Pills & Routine Reset */}
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex flex-wrap items-center gap-1">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="flex items-center gap-1 overflow-x-auto pb-1 sm:pb-0 w-full sm:w-auto">
               {categories.map(cat => (
                 <button
                   key={cat}
                   onClick={() => setFilterCategory(cat)}
-                  className={`text-[11px] px-2.5 py-1 rounded-lg border transition ${
+                  className={`text-[11px] px-2.5 py-1 rounded-lg border transition cursor-pointer shrink-0 ${
                     filterCategory === cat
                       ? 'bg-cyan-950 border-cyan-700 text-cyan-300 font-semibold'
                       : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-slate-200'

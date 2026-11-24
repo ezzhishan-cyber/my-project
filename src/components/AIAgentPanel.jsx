@@ -37,9 +37,9 @@ export default function AIAgentPanel({
   }
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl flex flex-col gap-4">
+    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 sm:p-4 shadow-xl flex flex-col gap-3.5 sm:gap-4">
       {/* Panel Header */}
-      <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-slate-800/80 pb-3">
         <div className="flex items-center gap-2">
           <div className="p-2 rounded-xl bg-cyan-950/70 border border-cyan-800/60 text-cyan-400">
             <Cpu className="w-5 h-5" />
@@ -48,7 +48,7 @@ export default function AIAgentPanel({
             <h2 className="text-sm font-bold text-slate-100 flex items-center gap-2">
               <span>AI Confluence Engine</span>
               <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-950 border border-cyan-800 text-cyan-300">
-                90% Target Architecture
+                90% Target
               </span>
             </h2>
             <p className="text-xs text-slate-400">
@@ -58,10 +58,10 @@ export default function AIAgentPanel({
         </div>
 
         {/* Confluence Threshold Slider */}
-        <div className="flex items-center gap-2 bg-slate-950/80 border border-slate-800 px-3 py-1.5 rounded-xl">
-          <Sliders className="w-3.5 h-3.5 text-cyan-400" />
-          <div className="text-right">
-            <div className="text-[10px] text-slate-400">Trigger Filter</div>
+        <div className="flex items-center justify-between sm:justify-start gap-2 bg-slate-950/80 border border-slate-800 px-3 py-1.5 rounded-xl">
+          <div className="flex items-center gap-1.5">
+            <Sliders className="w-3.5 h-3.5 text-cyan-400" />
+            <div className="text-[10px] text-slate-400">Trigger:</div>
             <div className="font-mono text-xs font-bold text-cyan-300">
               ≥ {confluenceThreshold}%
             </div>
@@ -73,7 +73,7 @@ export default function AIAgentPanel({
             step="5"
             value={confluenceThreshold}
             onChange={(e) => onChangeThreshold(Number(e.target.value))}
-            className="w-16 accent-cyan-400 cursor-pointer"
+            className="w-20 accent-cyan-400 cursor-pointer"
             title="Adjust Selective Confluence Filter (70% - 95%)"
           />
         </div>

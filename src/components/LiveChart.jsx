@@ -18,6 +18,7 @@ export default function LiveChart({
   const [showBB, setShowBB] = useState(true);
   const [showEMA, setShowEMA] = useState(true);
   const [hoverData, setHoverData] = useState(null);
+  const [inspectedCandle, setInspectedCandle] = useState(null);
   const [chartLocked, setChartLocked] = useState(true);
 
   // Redraw canvas whenever candles, price, or indicators update
@@ -338,9 +339,9 @@ export default function LiveChart({
     ctx.textAlign = 'left';
     ctx.fillText(currentPrice.toFixed(stock.decimals), chartWidth + 5, curY + 4);
 
-    // Crosshair hover tooltip
+    // Crosshair hover tooltip & candle inspection
     if (hoverData) {
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
       ctx.setLineDash([2, 2]);
       ctx.beginPath();
       ctx.moveTo(hoverData.x, 0);
@@ -349,49 +350,107 @@ export default function LiveChart({
       ctx.lineTo(chartWidth, hoverData.y);
       ctx.stroke();
       ctx.setLineDash([]);
+
+      // Calculate price at crosshair Y
+      const hoverPrice = domainMax - ((hoverData.y - paddingTop) / chartHeight) * domainRange;
+      if (hoverPrice >= domainMin && hoverPrice <= domainMax) {
+        ctx.fillStyle = '#475569';
+        ctx.fillRect(chartWidth, hoverData.y - 8, paddingRight, 16);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '9px monospace';
+        ctx.textAlign = 'left';
+        ctx.fillText(hoverPrice.toFixed(stock.decimals), chartWidth + 4, hoverData.y + 4);
+      }
     }
   }, [candles, currentPrice, stock, showBB, showEMA, activeTrades, hoverData]);
 
-  const handleMouseMove = (e) => {
+  // Handle pointer & touch coordinate inspection
+  const updateInspectionFromCoords = (clientX, clientY) => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas || !candles || candles.length === 0) return;
     const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
+
+    if (x < 0 || x > rect.width || y < 0 || y > rect.height) {
+      setHoverData(null);
+      setInspectedCandle(null);
+      return;
+    }
+
     setHoverData({ x, y });
+
+    const visibleCount = Math.min(candles.length, 36);
+    const visibleCandles = candles.slice(-visibleCount);
+    const paddingRight = 65;
+    const chartWidth = rect.width - paddingRight;
+    const candleWidth = chartWidth / visibleCount;
+    const idx = Math.floor(x / candleWidth);
+
+    if (idx >= 0 && idx < visibleCandles.length) {
+      setInspectedCandle(visibleCandles[idx]);
+    } else {
+      setInspectedCandle(null);
+    }
+  };
+
+  const handleMouseMove = (e) => {
+    updateInspectionFromCoords(e.clientX, e.clientY);
   };
 
   const handleMouseLeave = () => {
     setHoverData(null);
+    setInspectedCandle(null);
+  };
+
+  // iPhone touch event handlers
+  const handleTouchStart = (e) => {
+    if (e.touches && e.touches.length > 0) {
+      updateInspectionFromCoords(e.touches[0].clientX, e.touches[0].clientY);
+    }
+  };
+
+  const handleTouchMove = (e) => {
+    if (e.touches && e.touches.length > 0) {
+      updateInspectionFromCoords(e.touches[0].clientX, e.touches[0].clientY);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    // Keep HUD visible for 1.2s on mobile after touch release
+    setTimeout(() => {
+      setHoverData(null);
+      setInspectedCandle(null);
+    }, 1200);
   };
 
   return (
     <div ref={containerRef} className="flex flex-col bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-      {/* Chart Toolbar */}
-      <div className="flex flex-wrap items-center justify-between px-4 py-2.5 bg-slate-950/70 border-b border-slate-800/80 gap-2">
-        <div className="flex items-center gap-3">
+      {/* Chart Toolbar (Responsive for iPhone 11) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between px-3.5 py-2.5 bg-slate-950/70 border-b border-slate-800/80 gap-2">
+        <div className="flex items-center justify-between sm:justify-start gap-2 sm:gap-3">
           <div className="flex items-center gap-1.5">
             <span className="font-extrabold text-slate-100 text-sm tracking-wide">{stock.symbol}</span>
-            <span className="text-xs text-slate-400">({stock.name})</span>
+            <span className="text-xs text-slate-400 hidden xs:inline">({stock.name})</span>
           </div>
 
-          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-cyan-950/60 border border-cyan-800/40 text-cyan-400 text-xs font-mono font-medium">
+          <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-cyan-950/60 border border-cyan-800/40 text-cyan-400 text-[11px] font-mono font-medium">
             <Clock className="w-3 h-3" />
-            <span>5M TF (00h05m00s)</span>
+            <span>5M TF</span>
           </div>
 
-          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-950/50 border border-emerald-800/40 text-emerald-400 text-xs font-mono font-medium">
+          <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-950/50 border border-emerald-800/40 text-emerald-400 text-[11px] font-mono font-medium">
             <Lock className="w-3 h-3" />
-            <span>Chart Locked</span>
+            <span className="hidden xs:inline">Locked</span>
           </div>
         </div>
 
         {/* Indicator Toggles & Simulation Controls */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between sm:justify-end gap-1.5 overflow-x-auto pb-0.5 sm:pb-0">
           {/* Bollinger Bands Toggle */}
           <button
             onClick={() => setShowBB(!showBB)}
-            className={`flex items-center gap-1 text-[11px] px-2 py-1 rounded-lg border transition ${
+            className={`flex items-center gap-1 text-[11px] px-2.5 py-1.5 rounded-lg border transition cursor-pointer select-none ${
               showBB
                 ? 'bg-cyan-950/80 border-cyan-700/80 text-cyan-300'
                 : 'bg-slate-800/60 border-slate-700 text-slate-500'
@@ -399,13 +458,13 @@ export default function LiveChart({
             title="Toggle Bollinger Bands (20, 2)"
           >
             {showBB ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
-            <span>BB (20, 2)</span>
+            <span>BB</span>
           </button>
 
           {/* EMA Overlay Toggle */}
           <button
             onClick={() => setShowEMA(!showEMA)}
-            className={`flex items-center gap-1 text-[11px] px-2 py-1 rounded-lg border transition ${
+            className={`flex items-center gap-1 text-[11px] px-2.5 py-1.5 rounded-lg border transition cursor-pointer select-none ${
               showEMA
                 ? 'bg-amber-950/80 border-amber-700/80 text-amber-300'
                 : 'bg-slate-800/60 border-slate-700 text-slate-500'
@@ -413,23 +472,23 @@ export default function LiveChart({
             title="Toggle EMA 9/21/50"
           >
             {showEMA ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
-            <span>EMA 9/21/50</span>
+            <span>EMA</span>
           </button>
 
           {/* Volatility Injection Test */}
           <button
             onClick={onInjectVolatility}
-            className="flex items-center gap-1 text-[11px] px-2 py-1 rounded-lg bg-slate-800 text-slate-300 border border-slate-700 hover:border-amber-500/50 hover:text-amber-300 transition"
+            className="flex items-center gap-1 text-[11px] px-2.5 py-1.5 rounded-lg bg-slate-800 text-slate-300 border border-slate-700 hover:border-amber-500/50 hover:text-amber-300 transition cursor-pointer select-none active:scale-95"
             title="Inject Market Volatility Burst to test ATR filters"
           >
             <Zap className="w-3 h-3 text-amber-400" />
-            <span className="hidden sm:inline">Inject Vol</span>
+            <span className="hidden xs:inline">Vol Test</span>
           </button>
 
           {/* Pause / Resume Live Ticks */}
           <button
             onClick={onTogglePause}
-            className="flex items-center gap-1 text-[11px] px-2 py-1 rounded-lg bg-slate-800 text-slate-300 border border-slate-700 hover:text-cyan-300 transition"
+            className="flex items-center gap-1 text-[11px] px-2.5 py-1.5 rounded-lg bg-slate-800 text-slate-300 border border-slate-700 hover:text-cyan-300 transition cursor-pointer select-none active:scale-95"
             title={isPaused ? 'Resume live feed' : 'Pause live feed'}
           >
             {isPaused ? <Play className="w-3 h-3 text-emerald-400" /> : <Pause className="w-3 h-3 text-slate-400" />}
@@ -438,42 +497,62 @@ export default function LiveChart({
         </div>
       </div>
 
-      {/* Main Interactive Candlestick Canvas */}
-      <div className="relative w-full h-[360px] sm:h-[420px] bg-slate-950">
+      {/* Main Interactive Candlestick Canvas (Optimized for iPhone touch) */}
+      <div className="relative w-full h-[270px] sm:h-[350px] md:h-[400px] bg-slate-950">
         <canvas
           ref={canvasRef}
           onMouseMove={handleMouseMove}
           onMouseLeave={handleMouseLeave}
-          className="w-full h-full cursor-crosshair block"
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          onTouchCancel={handleTouchEnd}
+          style={{ touchAction: 'pan-y' }}
+          className="w-full h-full cursor-crosshair block select-none"
         />
 
         {/* Live Candle Countdown Pill Overlay */}
-        <div className="absolute top-3 left-4 flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900/90 border border-slate-700/80 backdrop-blur-md shadow-lg pointer-events-none">
+        <div className="absolute top-2.5 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-900/90 border border-slate-700/80 backdrop-blur-md shadow-lg pointer-events-none">
           <div className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-          <span className="text-[11px] text-slate-400">Current 5M Candle Closes In:</span>
+          <span className="text-[10px] text-slate-400">Next Bar:</span>
           <span className="font-mono text-xs font-bold text-cyan-400">
             {Math.floor(remainingSeconds / 60).toString().padStart(2, '0')}:
             {(remainingSeconds % 60).toString().padStart(2, '0')}
           </span>
         </div>
 
+        {/* iPhone Touch Inspection Pill HUD */}
+        {inspectedCandle && (
+          <div className="absolute top-2.5 right-3 flex items-center gap-2 px-2.5 py-1 rounded-xl bg-slate-900/95 border border-cyan-500/50 backdrop-blur-md shadow-xl pointer-events-none text-[10px] font-mono animate-in fade-in duration-150">
+            <span className="text-slate-400">
+              {new Date(inspectedCandle.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </span>
+            <span className="text-slate-300">O: ${inspectedCandle.open.toFixed(stock.decimals)}</span>
+            <span className="text-slate-300">H: ${inspectedCandle.high.toFixed(stock.decimals)}</span>
+            <span className="text-slate-300">L: ${inspectedCandle.low.toFixed(stock.decimals)}</span>
+            <span className={inspectedCandle.close >= inspectedCandle.open ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold'}>
+              C: ${inspectedCandle.close.toFixed(stock.decimals)}
+            </span>
+          </div>
+        )}
+
         {/* Indicator Legend Overlay */}
-        <div className="absolute bottom-9 left-4 flex flex-wrap items-center gap-3 text-[10px] text-slate-400 bg-slate-900/80 px-2.5 py-1 rounded-lg border border-slate-800/80 backdrop-blur-sm pointer-events-none">
+        <div className="absolute bottom-8 left-3 flex flex-wrap items-center gap-2 text-[9px] text-slate-400 bg-slate-900/85 px-2 py-0.5 rounded-lg border border-slate-800/80 backdrop-blur-sm pointer-events-none">
           <div className="flex items-center gap-1">
-            <span className="w-2.5 h-0.5 bg-cyan-400 inline-block" />
+            <span className="w-2 h-0.5 bg-cyan-400 inline-block" />
             <span>EMA 9</span>
           </div>
           <div className="flex items-center gap-1">
-            <span className="w-2.5 h-0.5 bg-amber-400 inline-block" />
+            <span className="w-2 h-0.5 bg-amber-400 inline-block" />
             <span>EMA 21</span>
           </div>
           <div className="flex items-center gap-1">
-            <span className="w-2.5 h-0.5 bg-purple-400 inline-block" />
+            <span className="w-2 h-0.5 bg-purple-400 inline-block" />
             <span>EMA 50</span>
           </div>
           <div className="flex items-center gap-1">
-            <span className="w-2.5 h-0.5 bg-cyan-500/70 border-t border-dashed inline-block" />
-            <span>BB (20, 2)</span>
+            <span className="w-2 h-0.5 bg-cyan-500/70 border-t border-dashed inline-block" />
+            <span>BB 2σ</span>
           </div>
         </div>
       </div>
